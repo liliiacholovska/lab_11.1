@@ -21,7 +21,7 @@ void CreateDataFile(const string& fname) {
     fout.close();
 }
 
-void ProcessDataAndWriteAverages(const string& inputFileName, const string& outputFileName) {
+void ProcessData(const string& inputFileName, const string& outputFileName) {
     ifstream fin(inputFileName);
     ofstream fout(outputFileName);
     if (!fin.is_open() || !fout.is_open()) {
@@ -76,7 +76,7 @@ int main() {
     cout << "Enter output file name: ";
     cin >> outputFileName;
 
-    ProcessDataAndWriteAverages(inputFileName, outputFileName);
+    ProcessData(inputFileName, outputFileName);
 
     PrintFileContents(outputFileName);
 
