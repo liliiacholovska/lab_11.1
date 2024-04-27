@@ -6,7 +6,7 @@
 
 using namespace std;
 
-void CreateDataFile(const string& fname) {
+void CreateNumbersFile(const string& fname) {
     ofstream fout(fname);
     if (!fout.is_open()) {
         cout << "Error: Unable to open file for writing." << endl;
@@ -15,70 +15,88 @@ void CreateDataFile(const string& fname) {
 
     cout << "Enter numbers:\n";
     string line;
-    getline(cin, line);  
-    fout << line;
+    getline(cin, line);
+    istringstream iss(line);
+    int num;
+    while (iss >> num) {
+        fout.write(reinterpret_cast<char*>(&num), sizeof(num));
+    }
 
     fout.close();
 }
 
-void ProcessData(const string& inputFileName, const string& outputFileName) {
-    ifstream fin(inputFileName);
-    ofstream fout(outputFileName);
-    if (!fin.is_open() || !fout.is_open()) {
-        cout << "Error: Unable to open file." << endl;
-        return;
-    }
-
-    int num, sum = 0, count = 0;
-    int maxNum = numeric_limits<int>::min();
-    int minNum = numeric_limits<int>::max();
-    while (fin >> num) {
-        if (num > maxNum) maxNum = num;
-        if (num < minNum) minNum = num;
-        sum += num;
-        ++count;
-    }
-
-    double averageAll = count > 0 ? static_cast<double>(sum) / count : 0.0;
-    double averageMinMax = count > 0 ? (maxNum + minNum) / 2.0 : 0.0;
-
-    fout << "Average of max and min components: " << averageMinMax << endl;
-    fout << "Average of all components: " << averageAll << endl;
-
-    fin.close();
-    fout.close();
-}
-
-void PrintFileContents(const string& fname) {
-    ifstream fin(fname);
+void CalculateAverages(const string& input_fname, double& avgMinMax, double& overallAvg) {
+    ifstream fin(input_fname, ios::binary);
     if (!fin.is_open()) {
-        cout << "Error: Unable to open file for reading." << endl;
+        cerr << "Error opening file for reading." << endl;
         return;
     }
 
-    cout << "Contents of " << fname << ":" << endl;
-    string line;
-    while (getline(fin, line)) {
-        cout << line << endl;
+    int num;
+    int min = numeric_limits<int>::max();
+    int max = numeric_limits<int>::min();
+    int sum = 0;
+    int count = 0;
+    while (fin.read(reinterpret_cast<char*>(&num), sizeof(num))) {
+        if (num > max) max = num;
+        if (num < min) min = num;
+        sum += num;
+        count++;
+    }
+    fin.close();
+
+    if (count == 0) {
+        avgMinMax = 0.0;
+        overallAvg = 0.0;
+        return;
     }
 
+    avgMinMax = (max + min) / 2.0;
+    overallAvg = static_cast<double>(sum) / count;
+}
+
+void WriteAveragesToFile(const string& output_fname, double avgMinMax, double overallAvg) {
+    ofstream fout(output_fname, ios::binary);
+    if (!fout.is_open()) {
+        cerr << "Error opening file for writing." << endl;
+        return;
+    }
+    fout.write(reinterpret_cast<char*>(&avgMinMax), sizeof(avgMinMax));
+    fout.write(reinterpret_cast<char*>(&overallAvg), sizeof(overallAvg));
+    fout.close();
+}
+
+void ReadAveragesFromFile(const string& fname, double& avgMinMax, double& overallAvg) {
+    ifstream fin(fname, ios::binary);
+    if (!fin.is_open()) {
+        cerr << "Error opening file for reading." << endl;
+        return;
+    }
+    fin.read(reinterpret_cast<char*>(&avgMinMax), sizeof(avgMinMax));
+    fin.read(reinterpret_cast<char*>(&overallAvg), sizeof(overallAvg));
     fin.close();
 }
 
 int main() {
-    string inputFileName, outputFileName;
+    string input_file, output_file;
+
     cout << "Enter input file name: ";
-    cin >> inputFileName;
-    cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
-
-    CreateDataFile(inputFileName);
-
+    cin >> input_file;
     cout << "Enter output file name: ";
-    cin >> outputFileName;
+    cin >> output_file;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    
+    CreateNumbersFile(input_file);
 
-    ProcessData(inputFileName, outputFileName);
+    double avgMinMax = 0.0, overallAvg = 0.0;
+    CalculateAverages(input_file, avgMinMax, overallAvg);
+    WriteAveragesToFile(output_file, avgMinMax, overallAvg);
 
-    PrintFileContents(outputFileName);
+    double readAvgMinMax, readOverallAvg;
+    ReadAveragesFromFile(output_file, readAvgMinMax, readOverallAvg);
+
+    cout << "Average of max and min components: " << readAvgMinMax << endl;
+    cout << "Average of all components: " << readOverallAvg << endl;
 
     return 0;
 }
